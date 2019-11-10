@@ -23,7 +23,7 @@ server.listen(port, () => {
 })
 
 // provide a browserified file at a path
-app.get("/client.js", browserify(__dirname + "/src/client.js"))
+app.get("/dist/client.js", browserify(path.resolve("client.js")))
 
 // Routing
 app.use(express.static(path.join(__dirname, "public")))
@@ -31,6 +31,8 @@ app.use(express.static(path.join(__dirname, "public")))
 // Chatroom
 
 const platformInterval = 25
+
+const gameData = {earthquake: true}
 
 const platforms = []
 setInterval(() => {
@@ -42,18 +44,16 @@ setInterval(() => {
     }
 }, platformInterval)
 
-setInterval(
-    () => {
-        platforms.forEach((_, i) => {
-            platforms[i].y += 50
-        })
 
-        _.remove(platforms, ({ y }) => y > 720)
-    },
-    1000 / 6,
-)
+setInterval(() => {
+  if (chance.integer({min:1, max:60}) === 1){
+      gameData.earthquake = true
+  setTimeout(() => gameData.earthquake = false, 30000)
+  }
+}, 1000)
 
 let numUsers = 0
+let first = false
 
 io.on("connection", (socket) => {
     let addedUser = false
@@ -66,11 +66,28 @@ io.on("connection", (socket) => {
             message: data,
         })
     })
+  
+  socket.on("remove platform", (i) => {
+        delete platforms[i]
+    })
 
+  if (!first) {
     setInterval(
-        () => socket.broadcast.emit("update platforms", platforms),
-        1000 / 6,
-    )
+    () => {
+        platforms.forEach((_, i) => {
+            platforms[i].y += gameData.earthquake ? 100 : 50
+        })
+
+        _.remove(platforms, ({ y }) => y == null || y > 720)
+      
+      socket.broadcast.emit("update platforms", platforms)
+    },
+    1000 / 6,
+)
+  
+    setInterval(() => socket.broadcast.emit("update game data", gameData), 1000)
+    first = true
+  }
 
     // when the client emits 'add user', this listens and executes
     socket.on("add user", (username) => {
@@ -121,7 +138,6 @@ io.on("connection", (socket) => {
             // echo globally that this client has left
             socket.broadcast.emit("user left", {
                 username: socket.username,
-                numUsers,
             })
         }
     })
