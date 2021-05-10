@@ -12,7 +12,7 @@
         "compression": "^1.7.4",
         "express": "^4.16.4",
         "express-minify": "^1.0.0",
-        "lodash": "^4.17.15",
+        "lodash": "^4.17.21",
         "secure-chance": "^1.0.2",
         "socket.io": "^2.3.0",
         "sassify": "^4.0.1",
